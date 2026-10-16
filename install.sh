@@ -121,10 +121,11 @@ echo "Installing Advisor..."
 mkdir -p "$INSTALL_DIR"
 mkdir -p "$WEB_DIR"
 
-install -m 0755 \
-    "$SCRIPT_DIR/advisor.py" \
-    "$INSTALL_DIR/advisor.py"
-
+if [[ "$SCRIPT_DIR/advisor.py" -ef "$INSTALL_DIR/advisor.py" ]]; then
+    chmod 0755 "$INSTALL_DIR/advisor.py"
+else
+    install -m 0755 "$SCRIPT_DIR/advisor.py" "$INSTALL_DIR/advisor.py"
+fi
 install -m 0644 \
     "$SCRIPT_DIR/web/winlink-advisor.php" \
     "$WEB_DIR/winlink-advisor.php"
@@ -174,6 +175,42 @@ echo "Checking installed files..."
 [[ -f "$WEB_DIR/winlink-advisor-help.txt" ]]
 
 echo "Installed files verified."
+
+# Add Winlink Advisor to the DigiPi home-page navigation.
+INDEX_FILE="$WEB_DIR/index.php"
+
+if [[ -f "$INDEX_FILE" ]]; then
+    if grep -q 'href="/winlink-advisor.php"' "$INDEX_FILE"; then
+        echo "DigiPi home-page link already exists."
+    else
+        python3 - "$INDEX_FILE" <<'PYINDEX'
+from pathlib import Path
+import sys
+
+p = Path(sys.argv[1])
+s = p.read_text()
+
+marker = """  <td>
+    <a href="/wifi.php" title="Setup Wifi connection"><strong>Wifi</strong></a>
+  </td>
+"""
+
+link = """  <td>
+    <a href="/winlink-advisor.php" target="winlink-advisor" title="Winlink Propagation Advisor"><strong>Winlink Advisor</strong></a>
+  </td>
+"""
+
+if marker not in s:
+    print("WARNING: Could not locate the expected navigation entry.")
+    print("Add the Winlink Advisor link manually if needed.")
+else:
+    p.write_text(s.replace(marker, marker + link, 1))
+    print("Added Winlink Advisor to the DigiPi home page.")
+PYINDEX
+    fi
+else
+    echo "WARNING: DigiPi index.php not found; home-page link was not added."
+fi
 
 echo
 echo "========================================"

@@ -78,6 +78,7 @@ The installer will:
 8. Run regional classification self-tests.
 9. Check PHP syntax.
 10. Verify the installed files.
+11. Add a Winlink Advisor link to the DigiPi home page, if it is not already present.
 
 Existing installations are backed up under:
 
@@ -87,7 +88,13 @@ Each backup receives a timestamped directory.
 
 ## Web Interface
 
-After installation, open the DigiPi web server and select the Winlink Propagation Advisor page.
+After installation, open the DigiPi home page and click **Winlink Advisor**.
+
+The installer adds this link automatically when it finds the expected DigiPi navigation entry. If the entry cannot be found, the installer displays a warning and the link can be added manually.
+
+The Advisor web interface is installed at:
+
+    /var/www/html/winlink-advisor.php
 
 The page automatically reads the station callsign from:
 
