@@ -46,11 +46,10 @@ VALID_BAND_NAMES = {b[2] for b in BANDS}
 
 
 def load_config(path):
-    """Load CALLSIGN / STATION_GRID / WINLINK_KEY from the env file.
+    """Load station settings and the optional WINLINK_KEY.
 
-    Exits with a clear error rather than proceeding with blank values,
-    since a blank callsign or missing API key would otherwise fail much
-    later with a confusing error.
+    A callsign and grid are required. The API key is optional and is
+    only needed for Winlink gateway-status information.
     """
     config = {"NEWCALL": "", "NEWGRID": "", "WINLINK_KEY": ""}
 
@@ -74,10 +73,9 @@ def load_config(path):
 
     if not config["WINLINK_KEY"]:
         print(
-            f"ERROR: WINLINK_KEY must be set in {path} "
-            "(previously hardcoded in the script)"
+            "WARNING: WINLINK_KEY is not set in "
+            f"{path}. Winlink gateway status will be unavailable."
         )
-        sys.exit(1)
 
     return config["NEWCALL"], config["NEWGRID"], config["WINLINK_KEY"]
 
@@ -767,7 +765,12 @@ def main():
     print()
     print("WINLINK GATEWAYS — VARA + ARDOP")
     print("================================")
-    winlink_channels = fetch_winlink_channels(winlink_key)
+
+    if winlink_key:
+        winlink_channels = fetch_winlink_channels(winlink_key)
+    else:
+        print("WINLINK_KEY not configured; skipping gateway status lookup.")
+        winlink_channels = []
 
     print()
     selected_band, target_band = resolve_selected_band(detected_band, bands, now)

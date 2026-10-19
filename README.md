@@ -221,11 +221,12 @@ No fresh data does not necessarily indicate a software problem.
 
 ### Winlink gateway information unavailable
 
-Check that:
+The `WINLINK_KEY` is optional. Without it, the Advisor can still
+analyze WSPR/PSKReporter data, but Winlink gateway-status information
+will be skipped.
 
-    WINLINK_KEY
-
-is present in:
+If you want gateway-status information, check that `WINLINK_KEY` is
+present in:
 
     /home/pi/localize.env
 
