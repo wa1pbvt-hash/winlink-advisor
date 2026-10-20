@@ -135,8 +135,8 @@ log "7/7" "Verifying the updated installation..."
 [[ -f "$WEB_DIR/winlink-advisor-help.txt" ]] ||
     fail "Installed help file is missing."
 
-python3 -m py_compile "$INSTALL_DIR/advisor.py" ||
-    fail "The installed Python file failed compilation."
+python3 -c 'import ast, pathlib, sys; ast.parse(pathlib.Path(sys.argv[1]).read_text())' "$INSTALL_DIR/advisor.py" ||
+    fail "The installed Python file failed syntax validation."
 
 echo
 echo "========================================"
