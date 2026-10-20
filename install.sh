@@ -80,7 +80,7 @@ if [[ -n "$WINLINK_KEY" ]]; then
     echo "  Key:      present"
 else
     echo "  Key:      not present"
-    echo "  WARNING: Winlink gateway status will not work until WINLINK_KEY is configured."
+    echo "  INFO: Public gateway access will be used when WINLINK_KEY is absent."
 fi
 
 echo

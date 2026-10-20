@@ -16,6 +16,7 @@ import re
 import statistics
 import sys
 import urllib.request
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 # --------------------------------------------------------------------------
@@ -73,8 +74,8 @@ def load_config(path):
 
     if not config["WINLINK_KEY"]:
         print(
-            "WARNING: WINLINK_KEY is not set in "
-            f"{path}. Winlink gateway status will be unavailable."
+            "INFO: WINLINK_KEY is not set in "
+            f"{path}. Public Winlink gateway access will be used."
         )
 
     return config["NEWCALL"], config["NEWGRID"], config["WINLINK_KEY"]
@@ -508,7 +509,7 @@ def print_regional_breakdown(wspr_evidence, now):
 # Winlink gateway fetch
 # --------------------------------------------------------------------------
 
-def fetch_winlink_channels(winlink_key):
+def _fetch_winlink_channels_with_key(winlink_key):
     winlink_channels = []
 
     for winlink_mode in ["VARA", "ARDOP"]:
@@ -551,6 +552,85 @@ def fetch_winlink_channels(winlink_key):
 
         except Exception as e:
             print(f"{winlink_mode} ERROR: {e}")
+
+    return winlink_channels
+
+def fetch_winlink_channels(winlink_key):
+    """Retrieve HF gateway channels using a personal or public API key.
+
+    Preserve the existing personal-key endpoint when a key is configured.
+    Otherwise use the public access mechanism used by PAT.
+    """
+    if winlink_key:
+        return _fetch_winlink_channels_with_key(winlink_key)
+
+    public_key = "1880278F11684B358F36845615BD039A"
+    url = "https://api.winlink.org/gateway/status.json"
+    params = urllib.parse.urlencode({
+        "historyHours": WINLINK_HISTORY_HOURS,
+        "mode": "allhf",
+        "serviceCodes": "PUBLIC",
+        "key": public_key,
+    })
+    request = urllib.request.Request(
+        url + "?" + params,
+        headers={"User-Agent": "Winlink-Propagation-Advisor/1.0"},
+    )
+
+    winlink_channels = []
+
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            data = json.load(response)
+
+        counts = {"VARA": 0, "ARDOP": 0}
+
+        for gw in data.get("Gateways", []):
+            for ch in gw.get("GatewayChannels", []):
+                supported = str(ch.get("SupportedModes", ""))
+                supported_upper = supported.upper()
+
+                if "VARA" not in supported_upper and "ARDOP" not in supported_upper:
+                    continue
+
+                freq = ch.get("Frequency", 0)
+                band = get_band(freq)
+
+                if band == "Unknown":
+                    continue
+
+                record = {
+                    "callsign": gw.get("Callsign", ""),
+                    "grid": ch.get("Gridsquare", ""),
+                    "frequency": freq,
+                    "band": band,
+                    "mode": supported,
+                    "hours": ch.get("OperatingHours", ""),
+                    "status_hours": gw.get("HoursSinceStatus", 99),
+                }
+
+                winlink_channels.append(record)
+
+                if "VARA" in supported_upper:
+                    counts["VARA"] += 1
+                if "ARDOP" in supported_upper:
+                    counts["ARDOP"] += 1
+
+        print("Public Winlink gateway API:")
+        print(f"VARA:  {counts['VARA']} HF channels")
+        print(f"ARDOP: {counts['ARDOP']} HF channels")
+        print(f"Total eligible channel records: {len(winlink_channels)}")
+
+        for gateway in winlink_channels[:10]:
+            print(
+                f"{gateway['callsign']:8s} {gateway['grid']:6s} "
+                f"{gateway['frequency'] / 1000000:.4f} MHz "
+                f"{gateway['band']:5s} {gateway['mode']:12s} "
+                f"{gateway['hours']}"
+            )
+
+    except Exception as exc:
+        print(f"WINLINK API ERROR: Public gateway lookup failed: {exc}")
 
     return winlink_channels
 

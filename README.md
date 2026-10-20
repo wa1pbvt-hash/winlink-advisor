@@ -54,7 +54,7 @@ with at least:
     NEWCALL=YOURCALL
     NEWGRID=YOURGRID
 
-If WINLINK_KEY is present, the Advisor can use it for Winlink gateway status information.
+WINLINK_KEY is optional. Without it, the Advisor uses the public gateway access mechanism for Winlink HF channel information.
 
 The installer never displays the actual Winlink key.
 
@@ -162,12 +162,14 @@ WSPR reception is treated as propagation evidence. It does not guarantee that a 
 
 ## Winlink Gateway Information
 
-When `WINLINK_KEY` is configured, the Advisor can retrieve current Winlink HF gateway information and distinguish between:
+The Advisor retrieves public Winlink HF gateway channel information even
+when `WINLINK_KEY` is not configured. If a personal key is configured, the
+existing authenticated lookup is retained.
 
-- VARA HF gateways
-- ARDOP HF gateways
-
-Gateway information is combined with the WSPR propagation observations to provide the recommendations shown by the web interface.
+The Advisor considers VARA and ARDOP channels and combines gateway information
+with WSPR propagation observations to produce recommendations. WSPR data is
+still required for propagation-based recommendations, and gateway status or
+API availability can affect the results.
 
 ## Optional PAT Integration
 
@@ -221,16 +223,12 @@ No fresh data does not necessarily indicate a software problem.
 
 ### Winlink gateway information unavailable
 
-The `WINLINK_KEY` is optional. Without it, the Advisor can still
-analyze WSPR/PSKReporter data, but Winlink gateway-status information
-will be skipped.
+`WINLINK_KEY` is optional. Without it, the Advisor attempts to retrieve
+public Winlink gateway channel information using its public access mechanism.
+A personal key is not required for this fallback.
 
-If you want gateway-status information, check that `WINLINK_KEY` is
-present in:
-
-    /home/pi/localize.env
-
-The key should not be placed in the GitHub repository.
+If gateway retrieval fails, inspect the advisor output for the reported
+API error. Keep any personal credentials out of the GitHub repository.
 
 ### PAT button unavailable
 

@@ -915,7 +915,11 @@ Gateway matches: <strong><?php echo $region_gateway_count; ?></strong>
 <?php if (count($gateways) == 0): ?>
 
 <div class="warning">
+<?php if (preg_match('/WINLINK API ERROR|VARA ERROR:|ARDOP ERROR:/i', $output)): ?>
+Winlink gateway lookup failed. See the raw advisor output below for details.
+<?php else: ?>
 No Winlink gateways currently have matching WSPR propagation evidence.
+<?php endif; ?>
 
 <?php if ($run_error === null): ?>
 <details class="debug">
