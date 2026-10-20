@@ -187,25 +187,88 @@ A DigiPi without PAT can still use the propagation Advisor normally.
 
 ## Updating
 
-Run the installer again after obtaining a newer version of the project:
+### Routine updates
 
-    sudo ./install.sh
+Once the updater is present in your repository, run it as the normal
+DigiPi user (`pi`), without `sudo`:
 
-The installer is designed to be repeatable.
+    cd /home/pi/winlink-advisor
+    ./update.sh
 
-Before replacing an existing installation, it creates a timestamped backup.
+The updater performs the following steps:
 
-## Restoring a Previous Version
+1. Checks the repository and confirms the expected GitHub remote.
+2. Checks for local changes to tracked files.
+3. Remounts the DigiPi filesystem for writing.
+4. Creates timestamped backups of the repository and installed files.
+5. Fetches the latest version from the project's GitHub `main` branch.
+6. Updates the repository and runs the installer.
+7. Verifies the installed files and Python syntax.
 
-Backups are stored under:
+Wait for the message `UPDATE COMPLETED SUCCESSFULLY` before treating
+the update as successful. If the updater reports an error, read the
+message carefully and retain the backups before attempting recovery.
+
+Do not run the updater with `sudo`. It requests elevated permissions
+for the operations that need them.
+
+### Updating an older installation for the first time
+
+Older repository copies may not contain `update.sh`. Back up the
+existing repository before retrieving the newer version.
+
+Run the following block as user `pi`. It stops if any command fails:
+
+    set -e
+    cd /home/pi/winlink-advisor
+    sudo remount
+    tar -czf "/home/pi/winlink-advisor-before-update-$(date +%Y%m%d-%H%M%S).tar.gz" -C /home/pi winlink-advisor
+    git fetch origin
+    git reset --hard origin/main
+    ./update.sh
+
+Do not proceed with the update if creating the backup fails. If the
+Git fetch fails, resolve the network or Git problem before retrying.
+
+The archive is created before Git replaces tracked repository files.
+Keep it until the updated installation has been tested.
+
+**Warning:** `git reset --hard origin/main` discards local changes to
+tracked files. The archive above preserves a copy of the repository
+before that operation. If the backup or Git update fails, stop and
+resolve the problem before proceeding.
+
+These instructions assume the existing repository uses the official
+project remote and the standard path `/home/pi/winlink-advisor`.
+
+## Backups and recovery
+
+The installer and updater create backups in different locations.
+
+Installer backups:
 
     /home/pi/winlink-advisor/backups/
 
-Each backup directory contains the files replaced by the installer.
+Updater backups:
 
-A backup can be manually restored if necessary.
+    /home/pi/winlink-advisor-update-backups/
 
-Do not delete a backup until the new installation has been tested.
+The updater's timestamped backup directory contains:
+
+- `repository.tar.gz` — a copy of the repository files, excluding Git
+  internals and previous repository backups.
+- `installed-files.tar.gz` — copies of the existing Advisor engine,
+  web interface, help file, and DigiPi home page when those files exist.
+
+The first-update procedure for older installations also creates a
+timestamped archive under `/home/pi/`.
+
+Keep the backups until you have verified the updated web interface
+and tested the features you rely on. Successful installation does not
+guarantee that fresh PSK Reporter data is available.
+
+The updater does not intentionally modify `/home/pi/localize.env` or
+configure PAT, Mercury, VARA, ARDOP, or the radio.
 
 ## Troubleshooting
 
