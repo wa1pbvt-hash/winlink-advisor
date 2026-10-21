@@ -704,6 +704,56 @@ def rank_gateways(
     return ranked
 
 
+def print_gateway_directory(channels, winlink_mode="BOTH"):
+    """Display published gateway channels without implying propagation."""
+    print("PUBLIC WINLINK GATEWAY DIRECTORY")
+    print("===============================")
+    print("These are published gateway channels, not propagation recommendations.")
+    print("Current reachability and operating status are not guaranteed.")
+
+    mode_filter = winlink_mode.upper()
+    eligible = []
+
+    for channel in channels:
+        supported = str(channel.get("mode", "")).upper()
+        if mode_filter != "BOTH" and not (
+            supported == mode_filter or supported.startswith(mode_filter + " ")
+        ):
+            continue
+        if not channel.get("frequency") or not channel.get("band"):
+            continue
+        eligible.append(channel)
+
+    if not eligible:
+        print(f"No gateway channels found for mode filter: {mode_filter}")
+        return
+
+    eligible.sort(
+        key=lambda channel: (
+            str(channel.get("band", "")),
+            float(channel.get("frequency", 0)),
+            str(channel.get("callsign", "")),
+        )
+    )
+
+    print(f"Mode filter: {mode_filter}")
+    print(f"Published channels listed: {len(eligible)}")
+    print()
+    print(f"{'CALLSIGN':8s} {'GRID':6s} {'FREQUENCY':13s} {'BAND':5s} {'MODE':12s} HOURS")
+    print("-" * 67)
+
+    for channel in eligible:
+        frequency = float(channel["frequency"]) / 1000000
+        print(
+            f"{str(channel.get('callsign', '')):8.8s} "
+            f"{str(channel.get('grid', '')):6.6s} "
+            f"{frequency:8.4f} MHz  "
+            f"{str(channel.get('band', '')):5.5s} "
+            f"{str(channel.get('mode', '')):12.12s} "
+            f"{str(channel.get('hours', ''))}"
+        )
+
+
 def print_rankings(ranked, limit=10):
     print("TOP WINLINK PROPAGATION MATCHES")
     print("===============================")
@@ -814,51 +864,68 @@ def main():
         print(f"ERROR: failed to fetch/parse WSPR data: {e}")
         sys.exit(1)
 
+    winlink_mode = os.environ.get("WINLINK_ADVISOR_MODE", "BOTH").upper()
+
     if not reports:
         print()
-        print("No usable WSPR reports found. Nothing further to analyze.")
-        sys.exit(0)
+        print("WARNING: No usable WSPR reports were returned by PSKReporter.")
+        print("Propagation-based gateway rankings will not be available.")
+        print("Continuing to retrieve public Winlink gateway information.")
 
-    now = datetime.now(timezone.utc)
-    newest = max(r["timestamp"] for r in reports)
-    age_minutes = (now - newest).total_seconds() / 60
+        now = datetime.now(timezone.utc)
+        bands = {}
+        detected_band = None
+        recent_wspr = []
+        wspr_evidence = []
+        band_populations = {}
+        reference_population = 0
 
-    print()
-    print(f"Total reports:      {len(reports)}")
-    print(f"Newest report:      {newest.strftime('%Y-%m-%d %H:%M:%S UTC')}")
-    print(f"Data age:           {age_minutes:.1f} minutes")
-    print(f"Freshness limit:    {FRESHNESS_LIMIT_MINUTES} minutes")
+    else:
+        now = datetime.now(timezone.utc)
+        newest = max(r["timestamp"] for r in reports)
+        age_minutes = (now - newest).total_seconds() / 60
 
-    bands = group_by_band(reports)
-    fresh_bands = print_band_status(bands, now)
-    detected_band = detect_active_band(bands, fresh_bands, now)
+        print()
+        print(f"Total reports:      {len(reports)}")
+        print(f"Newest report:      {newest.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        print(f"Data age:           {age_minutes:.1f} minutes")
+        print(f"Freshness limit:    {FRESHNESS_LIMIT_MINUTES} minutes")
 
-    print()
-    recent_wspr, wspr_evidence = build_wspr_evidence(reports, now)
-    band_populations, reference_population = compute_band_populations(recent_wspr)
-    print(f"{BANDS[0][2]}-{BANDS[-1][2]} WSPR analysis window: last {WSPR_ANALYSIS_HOURS} hours")
-    print(f"Recent WSPR reports:      {len(recent_wspr)}")
-    print(f"Independent receivers:    {len(wspr_evidence)}")
+        bands = group_by_band(reports)
+        fresh_bands = print_band_status(bands, now)
+        detected_band = detect_active_band(bands, fresh_bands, now)
 
-    print_regional_breakdown(wspr_evidence, now)
+        print()
+        recent_wspr, wspr_evidence = build_wspr_evidence(reports, now)
+        band_populations, reference_population = compute_band_populations(recent_wspr)
+        print(f"{BANDS[0][2]}-{BANDS[-1][2]} WSPR analysis window: last {WSPR_ANALYSIS_HOURS} hours")
+        print(f"Recent WSPR reports:      {len(recent_wspr)}")
+        print(f"Independent receivers:    {len(wspr_evidence)}")
+
+        print_regional_breakdown(wspr_evidence, now)
 
     print()
     print("WINLINK GATEWAYS — VARA + ARDOP")
     print("================================")
 
-    if winlink_key:
+    try:
         winlink_channels = fetch_winlink_channels(winlink_key)
-    else:
-        print("WINLINK_KEY not configured; skipping gateway status lookup.")
+    except Exception as e:
+        print(f"WARNING: Winlink gateway lookup failed: {e}")
         winlink_channels = []
+
+    print(f"Winlink mode filter: {winlink_mode}")
+
+    if not reports:
+        print()
+        print("WSPR evidence is unavailable; skipping propagation ranking.")
+        print_gateway_directory(winlink_channels, winlink_mode)
+        return
 
     print()
     selected_band, target_band = resolve_selected_band(detected_band, bands, now)
     print(f"Selected WSPR band: {selected_band}")
     print(f"Actual WSPR band: {target_band}")
-
-    winlink_mode = os.environ.get("WINLINK_ADVISOR_MODE", "BOTH").upper()
-    print(f"Winlink mode filter: {winlink_mode}")
 
     ranked = rank_gateways(
         winlink_channels, target_band, winlink_mode, wspr_evidence, station_grid,
