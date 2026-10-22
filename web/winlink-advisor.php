@@ -317,6 +317,14 @@ foreach ($region_names as $region) {
             "best" => (float)$m[3],
             "avg" => (float)$m[4]
         ];
+    } else {
+        $regions[] = [
+            "name" => $region,
+            "receivers" => 0,
+            "fresh" => 0,
+            "best" => null,
+            "avg" => null
+        ];
     }
 }
 
@@ -889,12 +897,12 @@ Fresh: <strong><?php echo $r["fresh"]; ?></strong><br>
 
 Best SNR:
 <strong>
-<?php echo sprintf("%+.1f dB", $r["best"]); ?>
+<?php echo $r["best"] !== null ? sprintf("%+.1f dB", $r["best"]) : "N/A"; ?>
 </strong><br>
 
 Average:
 <strong>
-<?php echo sprintf("%+.1f dB", $r["avg"]); ?>
+<?php echo $r["avg"] !== null ? sprintf("%+.1f dB", $r["avg"]) : "N/A"; ?>
 </strong><br>
 
 Gateway matches: <strong><?php echo $region_gateway_count; ?></strong>
