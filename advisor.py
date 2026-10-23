@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 # --------------------------------------------------------------------------
 
 CONFIG_PATH = "/home/pi/localize.env"
-LOG_PATH = "/home/pi/winlink-advisor/score_log.jsonl"
+LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "score_log.jsonl")
 
 FRESHNESS_LIMIT_MINUTES = 30
 WSPR_ANALYSIS_HOURS = 24
