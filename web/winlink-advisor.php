@@ -1,14 +1,14 @@
 <?php
 // Winlink Propagation Advisor
 // Winlink propagation dashboard.
-// The Connect PAT action may start/stop DigiPi radio applications
-// through the dedicated digipi-connect-pat.sh controller.
+// PAT is opened in its own interface; this page does not start radio services.
 
 $advisor = "/home/pi/winlink-advisor/advisor.py";
 
 /* ---------- Station identity ---------- */
 
 $station_call = "your station";
+$station_grid = "Grid unavailable";
 
 $localize_file = "/home/pi/localize.env";
 
@@ -19,7 +19,11 @@ if (is_readable($localize_file)) {
             if ($value !== "") {
                 $station_call = $value;
             }
-            break;
+        } elseif (strpos($line, "NEWGRID=") === 0) {
+            $value = trim(substr($line, strlen("NEWGRID=")));
+            if ($value !== "") {
+                $station_grid = $value;
+            }
         }
     }
 }
@@ -28,49 +32,6 @@ $selected_band = $_GET["band"] ?? "AUTO";
 $selected_mode = $_GET["mode"] ?? "BOTH";
 $force_refresh = isset($_GET["refresh"]);
 
-/* ---------- Connect PAT controller ---------- */
-
-$connect_result = null;
-$connect_mode = $_POST["connect_pat_mode"] ?? "";
-$pat_controller = "/usr/local/bin/digipi-connect-pat.sh";
-$pat_controller_available = is_executable($pat_controller);
-
-if ($_SERVER["REQUEST_METHOD"] === "POST" && $connect_mode !== "") {
-
-    if (!$pat_controller_available) {
-        $connect_result = [
-            "ok" => false,
-            "message" => "PAT controller is not installed."
-        ];
-    } elseif (!in_array($connect_mode, ["VARA", "ARDOP"], true)) {
-        $connect_result = [
-            "ok" => false,
-            "message" => "Invalid Winlink mode."
-        ];
-    } else {
-
-        $controller = $pat_controller;
-
-        $cmd = "sudo " . escapeshellarg($controller) . " " .
-               escapeshellarg($connect_mode) . " 2>&1";
-
-        $controller_output = shell_exec($cmd);
-
-        $ok = false;
-
-        if ($controller_output !== null) {
-            $ok =
-                strpos($controller_output, "Connect PAT complete") !== false &&
-                strpos($controller_output, "PAT:   active") !== false;
-        }
-
-        $connect_result = [
-            "ok" => $ok,
-            "mode" => $connect_mode,
-            "output" => $controller_output ?? ""
-        ];
-    }
-}
 
 
 $valid_bands = ["AUTO", "160m", "80m", "40m", "30m", "20m", "17m", "15m", "12m", "10m"];
@@ -698,6 +659,321 @@ details.debug pre {
         padding: 15px;
     }
 }
+
+/* ---------- GLASSMORPHISM THEME ---------- */
+:root {
+    color-scheme: dark;
+    --glass-bg: rgba(20, 31, 48, 0.70);
+    --glass-bg-soft: rgba(25, 39, 59, 0.58);
+    --glass-border: rgba(150, 190, 235, 0.20);
+    --glass-text: #edf5ff;
+    --glass-muted: #a9bad0;
+    --glass-cyan: #72e4ff;
+    --glass-violet: #b6a1ff;
+}
+
+html {
+    min-height: 100%;
+    background: #080e19;
+}
+
+body {
+    min-height: 100vh;
+    color: var(--glass-text);
+    background-color: #080e19;
+    background-image:
+        linear-gradient(rgba(5, 10, 22, 0.42), rgba(5, 10, 22, 0.58)),
+        url('/winlink-advisor-assets/misty-mountain-sunset.png');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+.container {
+    width: 100%;
+    max-width: 1600px;
+    padding: 22px;
+}
+
+header {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(31, 52, 79, 0.82), rgba(20, 28, 49, 0.72));
+    border: 1px solid rgba(128, 190, 255, 0.28);
+    border-radius: 18px;
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.24),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+h1 {
+    color: var(--glass-cyan);
+    letter-spacing: 0.2px;
+    text-shadow: 0 0 24px rgba(66, 204, 255, 0.18);
+}
+
+.subtitle,
+.cache-note {
+    color: var(--glass-muted);
+}
+
+.section-title {
+    color: var(--glass-cyan);
+    font-weight: 700;
+    letter-spacing: 0.25px;
+    margin-top: 30px;
+    text-shadow: 0 0 18px rgba(66, 204, 255, 0.12);
+}
+
+.card,
+.region,
+.gateway,
+.stat {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.17),
+                inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease,
+                transform 0.2s ease, background 0.2s ease;
+}
+
+.card:hover,
+.gateway:hover {
+    border-color: rgba(114, 228, 255, 0.35);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.24),
+                0 0 20px rgba(66, 180, 255, 0.055);
+}
+
+.region {
+    background: linear-gradient(145deg, rgba(28, 44, 65, 0.78), rgba(17, 27, 44, 0.72));
+}
+
+.region:hover {
+    border-color: rgba(114, 228, 255, 0.42);
+}
+
+.region.selected {
+    opacity: 1;
+    transform: translateY(-2px);
+    border-color: rgba(114, 228, 255, 0.85);
+    box-shadow: 0 0 0 1px rgba(114, 228, 255, 0.28),
+                0 0 24px rgba(66, 204, 255, 0.12);
+}
+
+body[data-selected-region] .region:not(.selected) {
+    opacity: 0.48;
+}
+
+body[data-selected-region] .region:not(.selected):hover {
+    opacity: 0.78;
+}
+
+.stat {
+    background: rgba(7, 15, 28, 0.55);
+    border-radius: 11px;
+}
+
+.stat-label,
+.region-stats {
+    color: var(--glass-muted);
+}
+
+.stat-value,
+.callsign {
+    color: #f4f8ff;
+}
+
+.gateway {
+    background: linear-gradient(135deg, rgba(23, 39, 59, 0.82), rgba(17, 26, 44, 0.76));
+}
+
+.gateway.top {
+    border-left: 4px solid var(--glass-cyan);
+}
+
+.rank {
+    color: var(--glass-cyan);
+}
+
+.score {
+    background: rgba(91, 119, 174, 0.22);
+    border: 1px solid rgba(150, 190, 235, 0.20);
+    border-radius: 8px;
+}
+
+.tag {
+    color: #e0ecff;
+    background: rgba(5, 13, 25, 0.50);
+    border: 1px solid rgba(150, 190, 235, 0.17);
+    border-radius: 8px;
+}
+
+.why {
+    color: #c0cde0;
+    border-top-color: rgba(150, 190, 235, 0.16);
+}
+
+.refresh,
+button {
+    transition: filter 0.2s ease, transform 0.2s ease,
+                box-shadow 0.2s ease;
+}
+
+.refresh {
+    background: linear-gradient(110deg, #087fa9, #5650b8);
+    border: 1px solid rgba(140, 219, 255, 0.30);
+    border-radius: 9px;
+    box-shadow: 0 5px 18px rgba(0, 145, 210, 0.16);
+}
+
+.refresh:hover,
+button:hover {
+    filter: brightness(1.13);
+}
+
+a {
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+a:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--glass-cyan);
+    outline-offset: 3px;
+}
+
+.good-text {
+    color: #70edaa;
+}
+
+.fair-text {
+    color: #ffd875;
+}
+
+.weak-text {
+    color: #ff8f9b;
+}
+
+.footer {
+    color: #8798ae;
+}
+
+details {
+    color: var(--glass-muted);
+}
+
+details pre {
+    color: #dbe9ff;
+    background: rgba(4, 10, 20, 0.65);
+    border: 1px solid var(--glass-border);
+    border-radius: 9px;
+    padding: 12px;
+}
+
+@media (max-width: 700px) {
+    .container {
+        padding: 12px;
+    }
+
+    header {
+        padding: 16px;
+        border-radius: 14px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    .section-title {
+        font-size: 19px;
+    }
+
+    .region-grid,
+    .summary-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .card,
+    .region,
+    .gateway {
+        border-radius: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+/* Station identity in the upper-right of the header */
+.advisor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+}
+.advisor-header-main {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+.station-identity {
+    flex: 0 0 auto;
+    min-width: 205px;
+    margin-top: 8px;
+
+text-align: right;
+
+}
+.station-identity-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+.station-identity-row strong {
+    color: var(--glass-cyan);
+    font-size: 15px;
+}
+.station-identity-separator {
+    color: var(--glass-muted);
+    font-size: 15px;
+}
+.station-identity-time {
+    margin-top: 9px;
+    color: var(--glass-text);
+    font-size: 12px;
+    white-space: nowrap;
+}
+@media (max-width: 700px) {
+    .advisor-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+    .station-identity {
+        box-sizing: border-box;
+        width: 100%;
+        text-align: left;
+    }
+    .station-identity-row {
+        justify-content: flex-start;
+    }
+    .station-identity-time {
+        white-space: normal;
+    }
+}
+
+/* ---------- END GLASSMORPHISM THEME ---------- */
+
 </style>
 </head>
 
@@ -705,9 +981,14 @@ details.debug pre {
 
 <div class="container">
 
-<header>
+<header class="advisor-header">
 
+<div class="advisor-header-main">
 <h1>📡 Winlink Propagation Advisor</h1>
+
+
+
+
 
 <div class="subtitle">
 <?php echo htmlspecialchars($station_call, ENT_QUOTES, "UTF-8"); ?> — WSPR-based Winlink gateway recommendations
@@ -735,6 +1016,18 @@ if ($result_age < 60) {
 ?>
 <?php echo esc($updated_text); ?>
 </span>
+</div>
+
+<div class="station-identity" aria-label="Station identity and current date and time">
+    <div class="station-identity-row">
+        <strong><?php echo htmlspecialchars($station_call, ENT_QUOTES, "UTF-8"); ?></strong>
+        <span class="station-identity-separator">|</span>
+        <strong><?php echo htmlspecialchars($station_grid, ENT_QUOTES, "UTF-8"); ?></strong>
+    </div>
+    <div class="station-identity-time" id="station-local-time">
+        <?php echo htmlspecialchars(date("D, M j, Y · g:i:s A T"), ENT_QUOTES, "UTF-8"); ?>
+    </div>
+</div>
 
 </header>
 
@@ -744,6 +1037,8 @@ if ($result_age < 60) {
 </div>
 
 <div class="card">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start;">
+<div style="min-width:0;">
 
 <form method="get" action="winlink-advisor.php" style="display:flex;gap:20px;align-items:end;flex-wrap:wrap;">
 
@@ -785,7 +1080,24 @@ Apply
 </div>
 
 </form>
+</div>
 
+<div style="min-width:0;border-left:1px solid rgba(255,255,255,0.16);padding-left:24px;">
+<div style="font-weight:600;margin-bottom:12px;">📻 ARDOP + PAT Controls</div>
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+<a href="#"
+   onclick="window.open(window.location.protocol + '//' + window.location.hostname + ':8080/ui', 'pat'); return false;"
+   style="display:inline-block;padding:7px 12px;border-radius:5px;background:#26333d;color:#fff;border:1px solid #53616d;text-decoration:none;">
+Open PAT Email
+</a>
+</div>
+
+<div style="font-size:0.9em;margin-top:10px;color:inherit;">
+Select and connect to a gateway manually in PAT.
+</div>
+</div>
+</div>
 </div>
 
 <?php if ($run_error !== null): ?>
@@ -916,8 +1228,20 @@ Gateway matches: <strong><?php echo $region_gateway_count; ?></strong>
 </div>
 
 
+
+
 <div class="section-title">
 🎯 Top Winlink Gateway Recommendations
+</div>
+
+<div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:0 0 14px;">
+    <label for="recommendation-count" style="font-size:0.9em;">Show recommendations:</label>
+    <select id="recommendation-count" style="padding:8px 12px;border-radius:8px;background:#182028;color:#fff;border:1px solid #53616d;">
+        <option value="5" selected>Top 5</option>
+        <option value="10">Top 10</option>
+        <option value="15">Top 15</option>
+        <option value="20">Top 20</option>
+    </select>
 </div>
 
 <?php if (count($gateways) == 0): ?>
@@ -939,6 +1263,8 @@ No Winlink gateways currently have matching WSPR propagation evidence.
 </div>
 
 <?php else: ?>
+
+<div class="gateway-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:16px;align-items:stretch;">
 
 <?php foreach ($gateways as $g): ?>
 
@@ -1007,41 +1333,7 @@ Weak: <?php echo $g["weak"]; ?>
 
 <?php if ($g["why"] !== ""): ?>
 
-<div style="margin-top:12px;">
-<?php
-$gateway_mode = strtoupper(trim($g["mode"] ?? ""));
 
-if (preg_match('/\\bVARA\\b/', $gateway_mode)) {
-    $connect_mode = "VARA";
-    $connect_gui = "10000";
-} elseif (preg_match('/\\bARDOP\\b/', $gateway_mode)) {
-    $connect_mode = "ARDOP";
-    $connect_gui = "8514";
-} else {
-    $connect_mode = "";
-    $connect_gui = "";
-}
-?>
-
-<?php if ($connect_mode !== "" && $pat_controller_available): ?>
-
-<form method="post" style="display:inline-block;margin:0;"
-      onsubmit="return connectPat(this, '<?= esc($connect_mode); ?>', '<?= esc($connect_gui); ?>', '<?= esc($g['callsign']); ?>', '<?= esc($g['frequency']); ?>');">
-<input type="hidden" name="connect_pat_mode" value="<?= esc($connect_mode); ?>">
-<button type="submit"
- style="padding:7px 12px;border-radius:5px;background:#26333d;color:#fff;border:1px solid #53616d;cursor:pointer;">
-Connect to PAT
-</button>
-</form>
-
-<?php else: ?>
-
-<span style="display:inline-block;padding:7px 12px;border-radius:5px;background:#555;color:#ddd;border:1px solid #777;">
-Mode unavailable
-</span>
-
-<?php endif; ?>
-</div>
 
 <div class="why">
 
@@ -1056,6 +1348,8 @@ Mode unavailable
 </div>
 
 <?php endforeach; ?>
+
+</div>
 
 <?php endif; ?>
 
@@ -1073,126 +1367,80 @@ status. A high score indicates stronger propagation evidence, not a guarantee of
 
 
 <script>
-function filterGatewayRegion(region) {
+function getRecommendationLimit() {
+    var selector = document.getElementById('recommendation-count');
+    return selector ? parseInt(selector.value, 10) || 5 : 5;
+}
+
+function displayGatewayCards() {
     var cards = Array.from(document.querySelectorAll('.gateway'));
     var regions = Array.from(document.querySelectorAll('.region'));
-
-    // Clicking the currently selected region returns to the overall Top 10.
-    var current = document.body.getAttribute('data-selected-region');
-
-    if (current === region) {
-        document.body.removeAttribute('data-selected-region');
-
-        cards.forEach(function(card, index) {
-            card.style.display = (index < 10) ? '' : 'none';
-        });
-
-        regions.forEach(function(r) {
-            r.classList.remove('selected');
-        });
-
-        return;
-    }
-
-    document.body.setAttribute('data-selected-region', region);
-
-    regions.forEach(function(r) {
-        r.classList.toggle(
-            'selected',
-            r.getAttribute('data-region') === region
-        );
-    });
-
+    var selectedRegion = document.body.getAttribute('data-selected-region');
+    var limit = getRecommendationLimit();
     var shown = 0;
 
     cards.forEach(function(card) {
-        if (card.getAttribute('data-region') === region && shown < 10) {
-            card.style.display = '';
+        var matchesRegion = !selectedRegion ||
+            card.getAttribute('data-region') === selectedRegion;
 
-            // Renumber the visible gateways for this regional view.
+        if (matchesRegion && shown < limit) {
+            card.style.display = '';
+            shown++;
+
+            // Keep original global ranking numbers visible.
             var rankElement = card.querySelector('.rank');
             if (rankElement) {
-                rankElement.textContent = '#' + (shown + 1);
+                var originalRank = card.getAttribute('data-original-rank');
+                if (originalRank) {
+                    rankElement.textContent = '#' + originalRank;
+                }
             }
-
-            shown++;
         } else {
             card.style.display = 'none';
         }
     });
+
+    regions.forEach(function(r) {
+        r.classList.toggle(
+            'selected',
+            !!selectedRegion && r.getAttribute('data-region') === selectedRegion
+        );
+    });
+}
+
+function filterGatewayRegion(region) {
+    var current = document.body.getAttribute('data-selected-region');
+
+    // Clicking the selected region returns to the overall recommendations.
+    if (current === region) {
+        document.body.removeAttribute('data-selected-region');
+    } else {
+        document.body.setAttribute('data-selected-region', region);
+    }
+
+    displayGatewayCards();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     var cards = Array.from(document.querySelectorAll('.gateway'));
 
-    // Start with the overall Top 10.
-    cards.forEach(function(card, index) {
-        card.style.display = (index < 10) ? '' : 'none';
+    cards.forEach(function(card) {
+        var rankElement = card.querySelector('.rank');
+        if (rankElement) {
+            card.setAttribute(
+                'data-original-rank',
+                rankElement.textContent.replace('#', '').trim()
+            );
+        }
     });
+
+    var selector = document.getElementById('recommendation-count');
+    if (selector) {
+        selector.addEventListener('change', displayGatewayCards);
+    }
+
+    displayGatewayCards();
 });
-
-function connectPat(form, mode, guiPort, callsign, frequency) {
-    var modemUrl = 'http://' + window.location.hostname + ':' + guiPort;
-    var patUrl = 'http://' + window.location.hostname + ':8080/ui';
-
-    // Build the PAT Connect URL for the selected gateway.
-    var transport = (mode === 'ARDOP') ? 'ardop' : 'varahf';
-    var connectUrl = transport + ':///' + encodeURIComponent(callsign) +
-                     '?freq=' + encodeURIComponent(frequency);
-
-    if (mode === 'VARA') {
-        connectUrl += '&bw=2750';
-    }
-
-    // Open the windows directly from the user's button click so browsers
-    // are less likely to block them as popups.
-    var modemWindow = window.open('', 'digipi_modem');
-    var patWindow = window.open('', 'digipi_pat');
-
-    if (modemWindow) {
-        modemWindow.document.write(
-            '<html><body style="font-family:sans-serif;padding:25px;">' +
-            '<h2>Starting ' + mode + '...</h2>' +
-            '<p>Please wait while DigiPi prepares the radio and PAT.</p>' +
-            '</body></html>'
-        );
-    }
-
-    if (patWindow) {
-        patWindow.document.write(
-            '<html><body style="font-family:sans-serif;padding:25px;">' +
-            '<h2>Starting PAT...</h2>' +
-            '<p>Please wait while DigiPi prepares the connection.</p>' +
-            '</body></html>'
-        );
-    }
-
-    // Submit normally so PHP can run the controller.
-    // The controller starts/switches the modem and starts PAT.
-    setTimeout(function() {
-        if (modemWindow && !modemWindow.closed) {
-            modemWindow.location.href = modemUrl;
-        }
-        if (patWindow && !patWindow.closed) {
-
-            // Wait for PAT itself to finish loading before opening
-            // its built-in Connect dialog.
-            patWindow.onload = function() {
-                setTimeout(function() {
-                    try {
-                        patWindow.$('#connectModal').modal('show');
-                    } catch (e) {
-                        console.log('PAT Connect dialog could not be opened automatically:', e);
-                    }
-                }, 500);
-            };
-
-            patWindow.location.href = patUrl;
-        }
-    }, 4000);
-
-    return true;
-}
 </script>
 </body>
 </html>

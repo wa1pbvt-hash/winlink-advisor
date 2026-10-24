@@ -41,7 +41,8 @@ fi
 for required_file in \
     "$SCRIPT_DIR/advisor.py" \
     "$SCRIPT_DIR/web/winlink-advisor.php" \
-    "$SCRIPT_DIR/docs/winlink-advisor-help.txt"
+    "$SCRIPT_DIR/docs/winlink-advisor-help.txt" \
+    "$SCRIPT_DIR/web/assets/misty-mountain-sunset.png"
 do
     if [[ ! -f "$required_file" ]]; then
         echo "ERROR: Required package file missing:"
@@ -94,7 +95,8 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
 if [[ -f "$INSTALL_DIR/advisor.py" || \
       -f "$WEB_DIR/winlink-advisor.php" || \
-      -f "$WEB_DIR/winlink-advisor-help.txt" ]]; then
+      -f "$WEB_DIR/winlink-advisor-help.txt" || \
+      -f "$WEB_DIR/winlink-advisor-assets/misty-mountain-sunset.png" ]]; then
 
     mkdir -p "$BACKUP_DIR/$TIMESTAMP"
 
@@ -112,6 +114,10 @@ if [[ -f "$INSTALL_DIR/advisor.py" || \
 
     if [[ -f "$WEB_DIR/winlink-advisor-help.txt" ]]; then
         cp -a "$WEB_DIR/winlink-advisor-help.txt" "$BACKUP_DIR/$TIMESTAMP/"
+    fi
+
+    if [[ -f "$WEB_DIR/winlink-advisor-assets/misty-mountain-sunset.png" ]]; then
+        cp -a "$WEB_DIR/winlink-advisor-assets/misty-mountain-sunset.png" "$BACKUP_DIR/$TIMESTAMP/"
     fi
 fi
 
@@ -134,9 +140,15 @@ install -m 0644 \
     "$SCRIPT_DIR/docs/winlink-advisor-help.txt" \
     "$WEB_DIR/winlink-advisor-help.txt"
 
+mkdir -p "$WEB_DIR/winlink-advisor-assets"
+install -m 0644 \
+    "$SCRIPT_DIR/web/assets/misty-mountain-sunset.png" \
+    "$WEB_DIR/winlink-advisor-assets/misty-mountain-sunset.png"
+
 chown pi:pi "$INSTALL_DIR/advisor.py"
 chown root:root "$WEB_DIR/winlink-advisor.php"
 chown root:root "$WEB_DIR/winlink-advisor-help.txt"
+chown root:root "$WEB_DIR/winlink-advisor-assets/misty-mountain-sunset.png"
 
 echo
 echo "Running installed-copy self-test..."
@@ -173,8 +185,9 @@ echo "Checking installed files..."
 [[ -x "$INSTALL_DIR/advisor.py" ]]
 [[ -f "$WEB_DIR/winlink-advisor.php" ]]
 [[ -f "$WEB_DIR/winlink-advisor-help.txt" ]]
+[[ -s "$WEB_DIR/winlink-advisor-assets/misty-mountain-sunset.png" ]]
 
-echo "Installed files verified."
+echo "Installed files verified, including the dashboard background image."
 
 # Add Winlink Advisor to the DigiPi home-page navigation.
 INDEX_FILE="$WEB_DIR/index.php"

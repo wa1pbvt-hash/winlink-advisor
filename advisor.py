@@ -306,8 +306,11 @@ def wspr_age_weight(timestamp, now):
 
 
 def build_wspr_evidence(reports, now):
-    """Reduce raw reports to the single best (highest weighted-SNR) report
-    per (band, receiver) pair, within the analysis window."""
+    """Use the most recent report per (band, receiver) pair.
+
+    If reports have the same timestamp, prefer the stronger SNR.
+    Freshness is applied separately when scoring gateway evidence.
+    """
     cutoff = now - timedelta(hours=WSPR_ANALYSIS_HOURS)
 
     recent = [
@@ -321,10 +324,17 @@ def build_wspr_evidence(reports, now):
     best_by_receiver_band = {}
     for r in recent:
         r["age_weight"] = wspr_age_weight(r["timestamp"], now)
-        r["weighted_snr"] = r["snr"] * r["age_weight"]
-
         key = (r["band"], r["receiver"])
-        if key not in best_by_receiver_band or r["weighted_snr"] > best_by_receiver_band[key]["weighted_snr"]:
+        current = best_by_receiver_band.get(key)
+
+        if (
+            current is None
+            or r["timestamp"] > current["timestamp"]
+            or (
+                r["timestamp"] == current["timestamp"]
+                and r["snr"] > current["snr"]
+            )
+        ):
             best_by_receiver_band[key] = r
 
     return recent, list(best_by_receiver_band.values())

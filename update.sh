@@ -90,6 +90,7 @@ sudo tar -czf "$backup/installed-files.tar.gz" \
     home/pi/winlink-advisor/advisor.py \
     var/www/html/winlink-advisor.php \
     var/www/html/winlink-advisor-help.txt \
+    var/www/html/winlink-advisor-assets/misty-mountain-sunset.png \
     var/www/html/index.php ||
     fail "Installed-file backup failed. No update was attempted."
 

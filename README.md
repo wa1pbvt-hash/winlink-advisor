@@ -1,6 +1,6 @@
 # Winlink Propagation Advisor
 
-**Version 1.0.0**
+**Version 2.0.0**
 
 A WSPR-based propagation dashboard for DigiPi that uses recent WSPR reception reports and Winlink gateway information to help identify potentially useful HF Winlink paths.
 
@@ -17,6 +17,11 @@ Winlink Propagation Advisor combines:
 - VARA and ARDOP gateway information
 - Broad propagation regions
 - Freshness-aware recommendations
+- Redesigned dashboard with a mountain-sunset background
+- Callsign and grid square displayed together in the header
+- Selectable Top 5, 10, 15, or 20 gateway recommendations
+- Regional recommendations filtered to match the selected limit
+- Open PAT Email link to the existing PAT web interface
 - A browser-based DigiPi web interface
 
 The Advisor emphasizes **recent propagation evidence** rather than relying only on static distance calculations.
@@ -76,10 +81,11 @@ The installer will:
 5. Install the Advisor engine.
 6. Install the web interface.
 7. Install the help document.
-8. Run regional classification self-tests.
-9. Check PHP syntax.
-10. Verify the installed files.
-11. Add a Winlink Advisor link to the DigiPi home page, if it is not already present.
+8. Install the dashboard background image.
+9. Run regional classification self-tests.
+10. Check PHP syntax.
+11. Verify the installed files.
+12. Add a Winlink Advisor link to the DigiPi home page, if it is not already present.
 
 Existing installations are backed up under:
 
@@ -171,19 +177,13 @@ with WSPR propagation observations to produce recommendations. WSPR data is
 still required for propagation-based recommendations, and gateway status or
 API availability can affect the results.
 
-## Optional PAT Integration
+## PAT Email Access
 
-Some DigiPi installations may already have the DigiPi PAT controller:
+The dashboard's **Open PAT Email** button opens the existing PAT web interface in the browser. PAT must already be installed and running for that interface to be available.
 
-    /usr/local/bin/digipi-connect-pat.sh
+The Advisor dashboard does not start or stop PAT, Mercury, VARA, ARDOP, Hamlib, or other radio services. It does not install or configure the radio stack.
 
-When that controller is present, the Advisor can provide the existing **Connect to PAT** functionality.
-
-PAT integration is optional.
-
-The basic Advisor installer does not install or configure the PAT controller, Mercury, VARA, ARDOP, or the radio.
-
-A DigiPi without PAT can still use the propagation Advisor normally.
+A DigiPi without PAT can still use the propagation Advisor normally; PAT email access is a separate, optional facility.
 
 ## Updating
 
@@ -258,7 +258,8 @@ The updater's timestamped backup directory contains:
 - `repository.tar.gz` — a copy of the repository files, excluding Git
   internals and previous repository backups.
 - `installed-files.tar.gz` — copies of the existing Advisor engine,
-  web interface, help file, and DigiPi home page when those files exist.
+  web interface, help file, dashboard background image, and DigiPi home
+  page when those files exist.
 
 The first-update procedure for older installations also creates a
 timestamped archive under `/home/pi/`.
@@ -293,17 +294,11 @@ A personal key is not required for this fallback.
 If gateway retrieval fails, inspect the advisor output for the reported
 API error. Keep any personal credentials out of the GitHub repository.
 
-### PAT button unavailable
+### PAT email interface unavailable
 
-PAT integration is optional.
+The **Open PAT Email** button opens the existing PAT web interface. Confirm that PAT is installed and running and that its web interface is reachable.
 
-Check whether the DigiPi has:
-
-    /usr/local/bin/digipi-connect-pat.sh
-
-and whether it is executable.
-
-The Advisor itself does not install that controller.
+The Advisor does not start or stop PAT or other radio services.
 
 ### PHP syntax check
 
@@ -327,6 +322,7 @@ and:
 
     /var/www/html/winlink-advisor.php
     /var/www/html/winlink-advisor-help.txt
+    /var/www/html/winlink-advisor-assets/misty-mountain-sunset.png
 
 Backups are stored beneath:
 
@@ -346,17 +342,19 @@ The installer only reports whether the key is present.
 
 ## Project Status
 
-Version 1.0.0 represents the first packaged release of the Winlink Propagation Advisor with:
+Version 2.0.0 introduces a redesigned dashboard while retaining the Advisor's WSPR-based propagation analysis and Winlink gateway information.
 
-- WSPR/PSKReporter propagation data
-- Winlink gateway status
-- Broad regional classification
-- Freshness-aware propagation scoring
-- DigiPi web interface
-- Portable station identity
-- Installation backups
-- Installer self-tests
-- Optional PAT integration detection
+Highlights include:
+
+- Mountain-sunset dashboard background and refreshed visual layout
+- Callsign and grid square displayed in the header
+- Gateway recommendation cards with Top 5, 10, 15, or 20 selection
+- Regional recommendations filtered to match the selected limit
+- Open PAT Email link to the existing PAT web interface
+- Installer support for deploying and backing up the dashboard image
+- Updater backups that include the installed dashboard image
+
+The Advisor continues to leave the existing radio stack under the operator's control.
 
 ## Author
 
